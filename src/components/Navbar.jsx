@@ -2,7 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-const Navbar = ({ searchTerm, setSearchTerm }) => {
+const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,23 +20,11 @@ const Navbar = ({ searchTerm, setSearchTerm }) => {
       <div className="hub-navbar-inner">
         <button type="button" className="hub-brand" onClick={() => navigate('/')}>
           <span className="hub-logo">F</span>
-          <span>
+          <span className="hub-brand-copy">
             <span className="hub-brand-title">Foxiom</span>
-            <span className="hub-brand-subtitle"> | IT Product Hub</span>
+            <span className="hub-brand-subtitle">IT Product Hub</span>
           </span>
         </button>
-
-        {setSearchTerm !== undefined && (
-          <div className="hub-search-wrap">
-            <span className="hub-search-icon">Search</span>
-            <input
-              className="hub-search"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        )}
 
         <div className="hub-nav-right">
           {user?.role === 'admin' && (

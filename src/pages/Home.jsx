@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ProductTile from '../components/ProductTile';
@@ -15,9 +15,30 @@ const countSince = (items, field, date) => {
   return items.filter(item => item[field] && new Date(item[field]) >= date).length;
 };
 
+const APP_PLATFORMS = ['android', 'ios', 'apk'];
+const WEB_PLATFORMS = ['website', 'staging', 'testing'];
+
+const productMatchesAccessFilter = (product, filter, accessByProduct) => {
+  const accessLinks = accessByProduct[product._id] || [];
+
+  if (filter === 'App') {
+    return accessLinks.some(link =>
+      APP_PLATFORMS.includes(String(link.platform || '').toLowerCase())
+    );
+  }
+
+  if (filter === 'Web') {
+    return accessLinks.some(link =>
+      WEB_PLATFORMS.includes(String(link.platform || '').toLowerCase())
+    );
+  }
+
+  return false;
+};
+
 const Home = () => {
   const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [accessByProduct, setAccessByProduct] = useState({});
   const [activeFilter, setActiveFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState({
@@ -39,14 +60,21 @@ const Home = () => {
         const feedbackRequests = nextProducts.map(product =>
           api.get(`/products/${product._id}/feedback`).then(res => res.data || []).catch(() => [])
         );
+        const accessRequests = nextProducts.map(product =>
+          api.get(`/products/${product._id}/credentials`)
+            .then(res => [product._id, res.data || []])
+            .catch(() => [product._id, []])
+        );
 
-        const [feedbackGroups, usersRes] = await Promise.all([
+        const [feedbackGroups, accessGroups, usersRes] = await Promise.all([
           Promise.all(feedbackRequests),
+          Promise.all(accessRequests),
           user?.role === 'admin'
             ? api.get('/users').catch(() => ({ data: [] }))
             : Promise.resolve({ data: [] }),
         ]);
 
+        setAccessByProduct(Object.fromEntries(accessGroups));
         setDashboard({
           users: usersRes.data || [],
           feedback: feedbackGroups.flat(),
@@ -62,21 +90,13 @@ const Home = () => {
     fetchDashboard();
   }, [user?.role]);
 
-  const filters = useMemo(() => {
-    const statuses = products
-      .map(product => product.status)
-      .filter(Boolean)
-      .filter((status, index, all) => all.indexOf(status) === index);
+  const filters = ['All',  'App', 'Web'];
 
-    return ['All', ...statuses];
-  }, [products]);
-
-  const searched = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filtered = searched.filter(product => {
+  const filtered = products.filter(product => {
     if (activeFilter === 'All') return true;
+    if (activeFilter === 'App' || activeFilter === 'Web') {
+      return productMatchesAccessFilter(product, activeFilter, accessByProduct);
+    }
     return String(product.status || '').toLowerCase() === activeFilter.toLowerCase();
   });
 
@@ -117,7 +137,7 @@ const Home = () => {
 
   return (
     <div className="hub-page">
-      <Navbar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <Navbar />
 
       <main className="hub-main">
         <section className="hub-header">
@@ -168,7 +188,7 @@ const Home = () => {
             <div className="admin-empty-icon">?</div>
             <h3 className="admin-empty-title">No matching products</h3>
             <p className="admin-empty-copy">
-              Try another search term or switch to a different status filter.
+              Switch to a different product filter to see more items.
             </p>
           </section>
         ) : (

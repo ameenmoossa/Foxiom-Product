@@ -54,8 +54,10 @@ const FeedbackPanel = ({ productId }) => {
 
   useEffect(() => { fetchFeedback(); }, [productId]);
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    if (!form.description.trim()) { toast.error('Description is required'); return; }
     setSubmitting(true);
     try {
       await api.post(`/products/${productId}/feedback`, form);

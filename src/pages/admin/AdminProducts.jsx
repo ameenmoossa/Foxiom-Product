@@ -3,6 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/Navbar';
+import getAssetUrl from '../../api/assetUrl';
+
+const ProductIcon = ({ product }) => {
+  const [imageError, setImageError] = useState(false);
+  const iconUrl = getAssetUrl(product.icon_url);
+  const initial = product.name?.[0]?.toUpperCase() || 'P';
+
+  if (!iconUrl || imageError) return initial;
+
+  return (
+    <img
+      src={iconUrl}
+      alt={product.name}
+      onError={() => setImageError(true)}
+    />
+  );
+};
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -12,8 +29,8 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await api.get('/products');
-      setProducts(res.data);
+const res = await api.get('/products?includeArchived=true');      
+setProducts(res.data);
     } catch {
       toast.error('Failed to load products');
     } finally {
@@ -141,11 +158,7 @@ const AdminProducts = () => {
               <div key={product._id} className="admin-table-row">
                 <div className="admin-user-cell">
                   <span className="admin-product-icon">
-                    {product.icon_url ? (
-                      <img src={`http://localhost:5000${product.icon_url}`} alt={product.name} />
-                    ) : (
-                      product.name?.[0]?.toUpperCase() || 'P'
-                    )}
+                    <ProductIcon product={product} />
                   </span>
                   <span className="admin-product-copy">
                     <span className="admin-user-name">{product.name}</span>

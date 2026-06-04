@@ -3,11 +3,14 @@ import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/Navbar';
 
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'staff' };
+
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'staff' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const fetchUsers = async () => {
     try {
@@ -28,7 +31,8 @@ const AdminUsers = () => {
       await api.post('/users', form);
       toast.success('User created');
       setShowForm(false);
-      setForm({ name: '', email: '', password: '', role: 'staff' });
+      setShowPassword(false);
+      setForm(EMPTY_FORM);
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -76,7 +80,15 @@ const AdminUsers = () => {
             <p className="admin-page-subtitle">Manage team access, roles, and account status.</p>
           </div>
 
-          <button type="button" className="admin-primary-button" onClick={() => setShowForm(!showForm)}>
+          <button
+            type="button"
+            className="admin-primary-button"
+            onClick={() => {
+              setForm(EMPTY_FORM);
+              setShowPassword(false);
+              setShowForm(current => !current);
+            }}
+          >
             {showForm ? 'Close Form' : 'Add User'}
           </button>
         </header>
@@ -91,7 +103,9 @@ const AdminUsers = () => {
         </section>
 
         {showForm && (
-          <form onSubmit={handleCreate} className="admin-form-card">
+          <form onSubmit={handleCreate} className="admin-form-card" autoComplete="off">
+            <input type="text" name="username" autoComplete="username" hidden readOnly />
+            <input type="password" name="password" autoComplete="current-password" hidden readOnly />
             <h2 className="admin-form-title">New User Profile</h2>
             <div className="admin-form-grid">
               <label className="product-field">
@@ -99,6 +113,8 @@ const AdminUsers = () => {
                 <input
                   className="admin-input"
                   placeholder="Full Name"
+                  name="newUserFullName"
+                  autoComplete="off"
                   value={form.name}
                   onChange={e => setForm(current => ({ ...current, name: e.target.value }))}
                   required
@@ -111,6 +127,8 @@ const AdminUsers = () => {
                   className="admin-input"
                   placeholder="Email Address"
                   type="email"
+                  name="newUserEmail"
+                  autoComplete="off"
                   value={form.email}
                   onChange={e => setForm(current => ({ ...current, email: e.target.value }))}
                   required
@@ -119,14 +137,39 @@ const AdminUsers = () => {
 
               <label className="product-field">
                 <span className="product-label">Password</span>
-                <input
-                  className="admin-input"
-                  placeholder="Password"
-                  type="password"
-                  value={form.password}
-                  onChange={e => setForm(current => ({ ...current, password: e.target.value }))}
-                  required
-                />
+                <div className="admin-password-field">
+                  <input
+                    className="admin-input"
+                    placeholder="Password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="newUserPassword"
+                    autoComplete="new-password"
+                    value={form.password}
+                    onChange={e => setForm(current => ({ ...current, password: e.target.value }))}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="admin-password-toggle"
+                    aria-label={showPassword ? 'Hide password' : 'View password'}
+                    title={showPassword ? 'Hide password' : 'View password'}
+                    onClick={() => setShowPassword(current => !current)}
+                  >
+                    {showPassword ? (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M8.3 5.1A10.8 10.8 0 0 1 12 4c5 0 8.5 4.3 9.6 6a2.4 2.4 0 0 1 0 2.1 15.8 15.8 0 0 1-2.3 2.9" />
+                        <path d="M15.5 18.1A10.4 10.4 0 0 1 12 19c-5 0-8.5-4.3-9.6-6a2.4 2.4 0 0 1 0-2.1 15.4 15.4 0 0 1 3.4-3.8" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2.4 10.9C3.5 8.9 7 4 12 4s8.5 4.9 9.6 6.9a2.3 2.3 0 0 1 0 2.2C20.5 15.1 17 20 12 20S3.5 15.1 2.4 13.1a2.3 2.3 0 0 1 0-2.2Z" />
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </label>
 
               <label className="product-field">

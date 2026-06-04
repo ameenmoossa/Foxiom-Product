@@ -4,17 +4,16 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import CredentialPanel from '../components/CredentialPanel';
+
 import FeedbackPanel from '../components/FeedbackPanel';
 
+import getAssetUrl from '../api/assetUrl';
+
 const statusClass = {
-  Active: 'active',
-  ACTIVE: 'active',
-  Beta: 'beta',
-  BETA: 'beta',
-  Archived: 'archived',
-  ARCHIVED: 'archived',
-  Draft: 'draft',
-  DRAFT: 'draft',
+  Active: 'active', ACTIVE: 'active',
+  Beta: 'beta', BETA: 'beta',
+  Archived: 'archived', ARCHIVED: 'archived',
+  Draft: 'draft', DRAFT: 'draft',
 };
 
 const ProductDetail = () => {
@@ -22,12 +21,27 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    api.get(`/products/${id}`)
-      .then(res => setProduct(res.data))
-      .catch(() => toast.error('Failed to load product'))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        setImageError(false);
+        const res = await api.get(`/products/${id}`);
+        if (!cancelled) setProduct(res.data);
+      } catch {
+        if (!cancelled) toast.error('Failed to load product');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -51,6 +65,8 @@ const ProductDetail = () => {
 
   const initial = product.name?.[0]?.toUpperCase() || 'P';
   const status = statusClass[product.status] || 'draft';
+  const iconUrl = getAssetUrl(product.icon_url);
+  const hasIcon = iconUrl && !imageError;
 
   return (
     <div className="detail-page">
@@ -66,8 +82,12 @@ const ProductDetail = () => {
         <section className="detail-hero">
           <div className="detail-hero-top">
             <div className="detail-product-icon">
-              {product.icon_url ? (
-                <img src={`http://localhost:5000${product.icon_url}`} alt="" />
+              {hasIcon ? (
+                <img
+                  src={iconUrl}
+                  alt=""
+                  onError={() => setImageError(true)}
+                />
               ) : (
                 initial
               )}
@@ -91,12 +111,7 @@ const ProductDetail = () => {
           </div>
 
           {product.demo_video_url && (
-            <a
-              href={product.demo_video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="detail-demo-link"
-            >
+            <a href={product.demo_video_url} target="_blank" rel="noopener noreferrer" className="detail-demo-link">
               <span>Play</span>
               Watch demo video
             </a>
@@ -168,7 +183,7 @@ const ProductDetail = () => {
                 </div>
                 <div className="detail-media-grid">
                   {product.media.map((media, index) => (
-                    <img key={`${media}-${index}`} src={`http://localhost:5000${media}`} alt="" />
+                    <img key={`${media}-${index}`} src={getAssetUrl(media)} alt="" />
                   ))}
                 </div>
               </section>
@@ -177,6 +192,7 @@ const ProductDetail = () => {
 
           <aside className="detail-side">
             <CredentialPanel productId={id} />
+
             <FeedbackPanel productId={id} />
           </aside>
         </div>
